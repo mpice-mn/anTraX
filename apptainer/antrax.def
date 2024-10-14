@@ -1,0 +1,68 @@
+Bootstrap: docker
+From: tensorflow/tensorflow:1.15.5
+
+%setup
+	# check if parent directory contain required files
+	if [ ! \( -d ../antrax -a -d ../matlab -a -f ../setup.py \) ]; then
+		echo "Error: parent director doesn't look like antrax source repository!"
+		exit 1
+	fi
+
+
+%files
+	# assuming build is run out of source repository
+	../ /opt/anTraX
+
+
+%environment
+	export ANTRAX_PATH=/opt/anTraX/
+	export ANTRAX_USE_MCR=True
+	export ANTRAX_MCR=/usr/local/MATLAB/MATLAB_Runtime/v96
+	export LD_LIBRARY_PATH=/usr/local/MATLAB/MATLAB_Runtime/v96/runtime/glnxa64:/usr/local/MATLAB/MATLAB_Runtime/v96/bin/glnxa64:/usr/local/MATLAB/MATLAB_Runtime/v96/sys/os/glnxa64:/usr/local/MATLAB/MATLAB_Runtime/v96/extern/bin/glnxa64
+	export DLClight=True
+
+
+%help
+	This container expects a MATLAB compiler runtime 2019a to be available under /usr/local/MATLAB.
+	
+	Mount it into the container by setting APPTAINER_BIND accordingly, e.g.:
+	
+	    export APPTAINER_BIND=~/MATLAB:/usr/local/MATLAB
+	
+
+%post
+	# create MATLAB bind point
+	mkdir -p /usr/local/MATLAB
+
+	# install dependencies
+	apt-get update
+	apt-get install --no-install-recommends -y ffmpeg git libxt6
+
+	# install application
+	cd /opt/anTraX/
+	pip --no-input install .
+	
+	# clean up
+	pip --no-input cache purge	
+	apt-get purge -y git
+	apt-get autoremove -y
+	apt-get clean -y
+	rm -rf /opt/anTraX/.git
+	rm -rf /opt/anTraX/docs
+	rm -rf /opt/anTraX/bin/antrax_maci64_mcr_interface.app
+	rm -rf /usr/share/doc
+	rm -rf /usr/share/info
+	rm -rf /usr/share/man
+
+
+%runscript
+	if [ ! -d $ANTRAX_MCR ]; then
+		echo 'Error: MATLAB runtime not found!'
+		echo
+		echo 'Please set APPTAINER_BIND variable to mount it into /usr/local/MATLAB, e.g.:'
+		echo
+		echo '    export APPTAINER_BIND=~/MATLAB:/usr/local/MATLAB'
+		echo
+		exit 1
+	fi
+	exec /usr/local/bin/antrax "$@"

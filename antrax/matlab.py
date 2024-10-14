@@ -48,7 +48,7 @@ def setup_mcr():
                 MCR + '/sys/os/glnxa64',
                 MCR + '/sys/opengl/lib/glnxa64']
         LDPATH = ':'.join(LDPATH)
-        os.putenv('LD_LIBRARY_PATH', LDPATH)
+        #os.putenv('LD_LIBRARY_PATH', LDPATH)
 
     elif MACOS:
         LDPATH = [MCR + '/runtime/maci64',
