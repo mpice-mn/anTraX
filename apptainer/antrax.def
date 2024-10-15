@@ -21,6 +21,9 @@ From: tensorflow/tensorflow:1.15.5
 	export LD_LIBRARY_PATH=/usr/local/MATLAB/MATLAB_Runtime/v96/runtime/glnxa64:/usr/local/MATLAB/MATLAB_Runtime/v96/bin/glnxa64:/usr/local/MATLAB/MATLAB_Runtime/v96/sys/os/glnxa64:/usr/local/MATLAB/MATLAB_Runtime/v96/extern/bin/glnxa64
 	export DLClight=True
 
+	# having DISPLAY set from X11 forwarding causes Matlab to crash
+	export DISPLAY=""
+
 
 %help
 	This container expects a MATLAB compiler runtime 2019a to be available under /usr/local/MATLAB.
