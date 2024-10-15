@@ -37,9 +37,12 @@ From: tensorflow/tensorflow:1.15.5
 	# create MATLAB bind point
 	mkdir -p /usr/local/MATLAB
 
-	# install dependencies
+	# install dependencies:
+	# - git: only used during installation
+	# - ffmpeg: used by antrax
+	# - libxt6, libxcomposite1: missing deps that caused test run to crash
 	apt-get update
-	apt-get install --no-install-recommends -y ffmpeg git libxt6
+	apt-get install --no-install-recommends -y ffmpeg git libxt6 libxcomposite1
 
 	# install application
 	cd /opt/anTraX/
