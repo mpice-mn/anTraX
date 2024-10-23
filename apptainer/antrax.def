@@ -1,17 +1,34 @@
 Bootstrap: docker
 From: tensorflow/tensorflow:1.15.5
 
+%arguments
+	include_mcr=False
+
 %setup
 	# check if parent directory contain required files
 	if [ ! \( -d ../antrax -a -d ../matlab -a -f ../setup.py \) ]; then
-		echo "Error: parent director doesn't look like antrax source repository!"
+		echo "Error: parent directory doesn't look like antrax source repository!"
 		exit 1
+	fi
+
+	if [ "{{ include_mcr }}" == "True" ]; then
+		# copy MCR here because of broken symlinks
+		export HOST_MCR_PATH="$HOME/MATLAB/MATLAB_Runtime/v96"
+		if [ ! -d $HOST_MCR_PATH ]; then
+			echo "Error: Matlab Runtime 2019a not found. Please check the HOST_MCR_PATH variable in the %setup section!"
+			exit 2
+		fi
+		mkdir -p "${APPTAINER_ROOTFS}/usr/local/MATLAB/MATLAB_Runtime"
+		cp -r -P "$HOST_MCR_PATH" "${APPTAINER_ROOTFS}/usr/local/MATLAB/MATLAB_Runtime"
 	fi
 
 
 %files
 	# assuming build is run out of source repository
 	../ /opt/anTraX
+
+	# MCR 2019a ships with a broken symlink, so this doesn't work (doing it with "cp -P" in %setup instead):
+	#~/MATLAB/MATLAB_Runtime/v96 /usr/local/MATLAB/MATLAB_Runtime
 
 
 %environment
@@ -21,17 +38,19 @@ From: tensorflow/tensorflow:1.15.5
 	export LD_LIBRARY_PATH=/usr/local/MATLAB/MATLAB_Runtime/v96/runtime/glnxa64:/usr/local/MATLAB/MATLAB_Runtime/v96/bin/glnxa64:/usr/local/MATLAB/MATLAB_Runtime/v96/sys/os/glnxa64:/usr/local/MATLAB/MATLAB_Runtime/v96/extern/bin/glnxa64
 	export DLClight=True
 
-	# having DISPLAY set from X11 forwarding causes Matlab to crash
+	# having DISPLAY set from X11 forwarding might cause Matlab to crash
 	export DISPLAY=""
 
 
 %help
-	This container expects a MATLAB compiler runtime 2019a to be available under /usr/local/MATLAB.
+	This container expects a MATLAB compiler runtime 2019a to be available under /usr/local/MATLAB/MATLAB_Runtime/v96.
 	
-	Mount it into the container by setting APPTAINER_BIND accordingly, e.g.:
+	Mount it into the container by setting APPTAINER_BIND accordingly, e.g. if the MCR installed unter `$HOME/MATLAB/MATLAB_Runtime/v69`:
 	
-	    export APPTAINER_BIND=~/MATLAB:/usr/local/MATLAB
+	    export APPTAINER_BIND="$HOME/MATLAB/MATLAB_Runtime/v96:/usr/local/MATLAB/MATLAB_Runtime/v96"
 	
+	Alternatively, the container be built with "--build-arg include_mcr=True". This is will copy
+	the MCR into the container filesystem (increases compressed image size by about 2 GB).
 
 %post
 	# create MATLAB bind point
@@ -63,12 +82,14 @@ From: tensorflow/tensorflow:1.15.5
 
 %runscript
 	if [ ! -d $ANTRAX_MCR ]; then
-		echo 'Error: MATLAB runtime not found!'
+		echo 'Error: MATLAB runtime 2019a not found!'
 		echo
-		echo 'Please set APPTAINER_BIND variable to mount it into /usr/local/MATLAB, e.g.:'
+		echo 'Please set APPTAINER_BIND variable to mount it into /usr/local/MATLAB/MATLAB_Runtime/v96, e.g.:'
 		echo
-		echo '    export APPTAINER_BIND=~/MATLAB:/usr/local/MATLAB'
+		echo '    export APPTAINER_BIND="$HOME/MATLAB/MATLAB_Runtime/v96:/usr/local/MATLAB/MATLAB_Runtime/v96"'
 		echo
+		echo 'Alternatively, the container can be built with "--build-arg include_mcr=True". This is will copy'
+		echo 'the MCR into the container filesystem (increases compressed image size by about 2 GB).'
 		exit 1
 	fi
 	exec /usr/local/bin/antrax "$@"
